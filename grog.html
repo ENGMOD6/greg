@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>موقع الرسم التفاعلي</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f1f1f1;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        /* إضافة الأنيميشن لرسالة الترحيب */
+        .welcome-message {
+            font-size: 2.5em;
+            color: #4CAF50;
+            font-weight: bold;
+            animation: fadeInOut 5s ease-in-out forwards;
+            margin-bottom: 20px;
+        }
+
+        /* الشريط العلوي */
+        header {
+            background-color: #333;
+            color: white;
+            padding: 20px 0;
+            width: 100%;
+            z-index: 100;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.2em;
+        }
+
+        /* الأدوات */
+        .tools {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background-color: #333;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s, transform 0.2s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #555;
+            transform: scale(1.1);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        /* لوحة الرسم */
+        canvas {
+            border: 2px solid #333;
+            background-color: #fff;
+            margin-top: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* تأثير الأنيميشن لظهور الرسالة واختفائها */
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* إضافة تأثير FadeIn للرأس */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- رسالة الترحيب -->
+    <div class="welcome-message">
+        مرحبًا مع Grog!
+    </div>
+
+    <!-- رأس الموقع -->
+    <header>
+        <h1>مرحبًا في موقع الرسم التفاعلي!</h1>
+        <p>ابدأ الرسم باستخدام الأدوات في الأسفل.</p>
+    </header>
+
+    <!-- أدوات الرسم -->
+    <div class="tools">
+        <button id="brushTool">أداة الفرشاة</button>
+        <button id="rectangleTool">أداة المربع</button>
+        <button id="ellipseTool">أداة الدائرة</button>
+        <button id="clearBtn">مسح اللوحة</button>
+        <button id="saveBtn">حفظ الصورة</button>
+        <button id="undoBtn">تراجع</button>
+        <button id="redoBtn">إعادة</button>
+        <button id="addLayerBtn">إضافة طبقة</button>
+        <button id="deleteLayerBtn">حذف الطبقة</button>
+    </div>
+
+    <!-- لوحة الرسم -->
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <!-- تذييل الموقع -->
+    <footer>
+        <p>حقوق الطبع والنشر © 2025 جميع الحقوق محفوظة</p>
+    </footer>
+
+    <script>
+        // إعداد اللوحة
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // إعداد الأدوات
+        let isDrawing = false;
+        let currentTool = 'brush';  // الفرشاة هي الأداة الافتراضية
+        let currentColor = '#000000';
+        let currentSize = 5;
+        let layers = [ctx.getImageData(0, 0, canvas.width, canvas.height)];  // حفظ الطبقات
+
+        // تغيير الأداة
+        document.getElementById('brushTool').addEventListener('click', () => {
+            currentTool = 'brush';
+        });
+
+        document.getElementById('rectangleTool').addEventListener('click', () => {
+            currentTool = 'rectangle';
+        });
+
+        document.getElementById('ellipseTool').addEventListener('click', () => {
+            currentTool = 'ellipse';
+        });
+
+        // مسح اللوحة
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            layers = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+        });
+
+        // حفظ الصورة
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const dataURL = canvas.toDataURL();
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'drawing.png';
+            a.click();
+        });
+
+        // التراجع والإعادة
+        let undoStack = [];
+        let redoStack = [];
+
+        document.getElementById('undoBtn').addEventListener('click', () => {
+            if (undoStack.length > 0) {
+                const lastState = undoStack.pop();
+                redoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+                ctx.putImageData(lastState, 0, 0);
+            }
+        });
+
+        document.getElementById('redoBtn').addEventListener('click', () => {
+            if (redoStack.length > 0) {
+                const lastState = redoStack.pop();
+                undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+                ctx.putImageData(lastState, 0, 0);
+            }
+        });
+
+        // إضافة طبقة جديدة
+        document.getElementById('addLayerBtn').addEventListener('click', () => {
+            const newLayer = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            layers.push(newLayer);
+        });
+
+        // حذف الطبقة الحالية
+        document.getElementById('deleteLayerBtn').addEventListener('click', () => {
+            if (layers.length > 1) {
+                layers.pop();
+                ctx.putImageData(layers[layers.length - 1], 0, 0);
+            }
+        });
+
+        // تفعيل الرسم
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const startX = e.offsetX;
+            const startY = e.offsetY;
+
+            // تخزين حالة الطبقة الحالية قبل البدء في التعديل
+            undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+
+            canvas.addEventListener('mousemove', draw);
+
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+                canvas.removeEventListener('mousemove', draw);
+            });
+
+            function draw(e) {
+                if (!isDrawing) return;
+
+                const x = e.offsetX;
+                const y = e.offsetY;
+
+                ctx.beginPath();
+                ctx.lineWidth = currentSize;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = currentColor;
+
+                if (currentTool === 'brush') {
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(x, y);
+                    ctx.stroke();
+                } else if (currentTool === 'rectangle') {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.strokeRect(startX, startY, x - startX, y - startY);
+                } else if (currentTool === 'ellipse') {
+                    ctx.beginPath();
+                    ctx.ellipse(startX, startY, Math.abs(x - startX), Math.abs(y - startY), 0, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
